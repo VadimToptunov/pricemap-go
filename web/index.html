@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceMap - Real Estate Price Map</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Using Leaflet instead of Google Maps (no API key required) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>🗺️ PriceMap</h1>
+                    <p>Real estate price map with factor analysis</p>
+                </div>
+                <div class="stats-header">
+                    <div class="stat-item">
+                        <span class="stat-label">Properties:</span>
+                        <span class="stat-value" id="totalProperties">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Avg Price:</span>
+                        <span class="stat-value" id="avgPrice">$0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Updated:</span>
+                        <span class="stat-value" id="lastUpdate">--:--</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="controls">
+            <div class="controls-row">
+                <div class="filter-group">
+                    <label>City:</label>
+                    <select id="cityFilter">
+                        <option value="">All cities</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Type:</label>
+                    <select id="typeFilter">
+                        <option value="">All types</option>
+                        <option value="apartment">Apartment</option>
+                        <option value="house">House</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Price from:</label>
+                    <input type="number" id="priceMin" placeholder="0">
+                </div>
+                
+                <div class="filter-group">
+                    <label>Price to:</label>
+                    <input type="number" id="priceMax" placeholder="1000000">
+                </div>
+                
+                <div class="filter-group">
+                    <label>Rating from:</label>
+                    <input type="range" id="scoreMin" min="0" max="100" value="0">
+                    <span class="range-value" id="scoreMinValue">0</span>
+                </div>
+                
+                <div class="filter-group">
+                    <label>View mode:</label>
+                    <select id="viewMode">
+                        <option value="heatmap">Heatmap</option>
+                        <option value="markers">Markers</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="controls-actions">
+                <button id="applyFilters" class="btn-primary">Apply</button>
+                <button id="resetFilters" class="btn-secondary">Reset</button>
+                <button id="autoUpdate" class="btn-toggle active">Auto-update: ON</button>
+                <button id="toggleDetails" class="btn-toggle">Show details</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="map-controls">
+                    <button id="zoomIn" class="map-btn">+</button>
+                    <button id="zoomOut" class="map-btn">-</button>
+                    <button id="centerMap" class="map-btn">📍</button>
+                </div>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <p>Loading data...</p>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="info-panel" id="infoPanel">
+                    <div class="panel-header">
+                        <h3>Area Information</h3>
+                        <button class="close-btn" id="closePanel">×</button>
+                    </div>
+                    <div id="infoContent">
+                        <p class="placeholder">Click on a point on the map to view details</p>
+                    </div>
+                </div>
+                
+                <div class="factors-panel" id="factorsPanel" style="display: none;">
+                    <h3>Detailed Factor Analysis</h3>
+                    <div class="factors-chart-container">
+                        <canvas id="factorsChart"></canvas>
+                    </div>
+                    <div class="factors-details" id="factorsDetails"></div>
+                </div>
+                
+                <div class="properties-list" id="propertiesList" style="display: none;">
+                    <h3>Properties List</h3>
+                    <div class="list-controls">
+                        <input type="text" id="searchInput" placeholder="Search...">
+                        <select id="sortBy">
+                            <option value="price_asc">Price ↑</option>
+                            <option value="price_desc">Price ↓</option>
+                            <option value="score_asc">Rating ↑</option>
+                            <option value="score_desc">Rating ↓</option>
+                        </select>
+                    </div>
+                    <div class="properties-container" id="propertiesContainer"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <h4>Legend</h4>
+            <div class="legend-content">
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #00ff00;"></span>
+                    <span>Low price / High rating</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #ffff00;"></span>
+                    <span>Medium price / Medium rating</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #ff0000;"></span>
+                    <span>High price / Low rating</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app-leaflet.js"></script>
+</body>
+</html>
