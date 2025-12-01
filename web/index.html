@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -65,9 +68,53 @@
                 </div>
                 
                 <div class="filter-group">
+                    <label>Rooms:</label>
+                    <input type="number" id="roomsMin" placeholder="Min" min="0">
+                    <input type="number" id="roomsMax" placeholder="Max" min="0">
+                </div>
+                
+                <div class="filter-group">
+                    <label>Bedrooms:</label>
+                    <input type="number" id="bedroomsMin" placeholder="Min" min="0">
+                    <input type="number" id="bedroomsMax" placeholder="Max" min="0">
+                </div>
+                
+                <div class="filter-group">
+                    <label>Bathrooms:</label>
+                    <input type="number" id="bathroomsMin" placeholder="Min" min="0" step="0.5">
+                    <input type="number" id="bathroomsMax" placeholder="Max" min="0" step="0.5">
+                </div>
+                
+                <div class="filter-group">
+                    <label>Area (m²):</label>
+                    <input type="number" id="areaMin" placeholder="Min" min="0">
+                    <input type="number" id="areaMax" placeholder="Max" min="0">
+                </div>
+            </div>
+            
+            <div class="controls-row">
+                <div class="filter-group">
                     <label>Rating from:</label>
                     <input type="range" id="scoreMin" min="0" max="100" value="0">
                     <span class="range-value" id="scoreMinValue">0</span>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Safety score:</label>
+                    <input type="range" id="crimeScoreMin" min="0" max="100" value="0">
+                    <span class="range-value" id="crimeScoreMinValue">0</span>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Transport score:</label>
+                    <input type="range" id="transportScoreMin" min="0" max="100" value="0">
+                    <span class="range-value" id="transportScoreMinValue">0</span>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Education score:</label>
+                    <input type="range" id="educationScoreMin" min="0" max="100" value="0">
+                    <span class="range-value" id="educationScoreMinValue">0</span>
                 </div>
                 
                 <div class="filter-group">

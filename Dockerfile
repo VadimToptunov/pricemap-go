@@ -17,6 +17,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./cmd/server
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o scraper ./cmd/scraper
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o scheduler ./cmd/scheduler
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o geocode ./cmd/geocode
 
 # Final stage
 FROM alpine:latest
@@ -29,6 +30,7 @@ WORKDIR /root/
 COPY --from=builder /app/server .
 COPY --from=builder /app/scraper .
 COPY --from=builder /app/scheduler .
+COPY --from=builder /app/geocode .
 
 # Copy web files
 COPY --from=builder /app/web ./web

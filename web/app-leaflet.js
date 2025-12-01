@@ -4,6 +4,7 @@ let map;
 let heatmapLayer;
 let heatmapData = [];
 let markers = [];
+let markerClusterGroup = null;
 let propertiesData = [];
 let factorsChart = null;
 let autoUpdateInterval = null;
@@ -68,10 +69,25 @@ function initEventListeners() {
     document.getElementById('zoomOut').addEventListener('click', () => map.zoomOut());
     document.getElementById('centerMap').addEventListener('click', centerMapOnData);
     
-    // Rating slider
+    // Rating sliders
     const scoreSlider = document.getElementById('scoreMin');
     scoreSlider.addEventListener('input', (e) => {
         document.getElementById('scoreMinValue').textContent = e.target.value;
+    });
+    
+    const crimeScoreSlider = document.getElementById('crimeScoreMin');
+    crimeScoreSlider.addEventListener('input', (e) => {
+        document.getElementById('crimeScoreMinValue').textContent = e.target.value;
+    });
+    
+    const transportScoreSlider = document.getElementById('transportScoreMin');
+    transportScoreSlider.addEventListener('input', (e) => {
+        document.getElementById('transportScoreMinValue').textContent = e.target.value;
+    });
+    
+    const educationScoreSlider = document.getElementById('educationScoreMin');
+    educationScoreSlider.addEventListener('input', (e) => {
+        document.getElementById('educationScoreMinValue').textContent = e.target.value;
     });
     
     // View mode
@@ -89,9 +105,13 @@ async function loadInitialData() {
     showLoading(true);
     await Promise.all([
         loadCities(),
-        loadStats(),
-        loadHeatmapData()
+        loadStats()
     ]);
+    
+    // Load heatmap data and center map on data
+    await loadHeatmapData();
+    await centerMapOnData();
+    
     showLoading(false);
 }
 
@@ -110,9 +130,20 @@ async function loadHeatmapData() {
     if (filters.type) url += `&type=${encodeURIComponent(filters.type)}`;
     if (filters.priceMin) url += `&price_min=${filters.priceMin}`;
     if (filters.priceMax) url += `&price_max=${filters.priceMax}`;
+    if (filters.roomsMin) url += `&rooms_min=${filters.roomsMin}`;
+    if (filters.roomsMax) url += `&rooms_max=${filters.roomsMax}`;
+    if (filters.bedroomsMin) url += `&bedrooms_min=${filters.bedroomsMin}`;
+    if (filters.bedroomsMax) url += `&bedrooms_max=${filters.bedroomsMax}`;
+    if (filters.bathroomsMin) url += `&bathrooms_min=${filters.bathroomsMin}`;
+    if (filters.bathroomsMax) url += `&bathrooms_max=${filters.bathroomsMax}`;
+    if (filters.areaMin) url += `&area_min=${filters.areaMin}`;
+    if (filters.areaMax) url += `&area_max=${filters.areaMax}`;
+    if (filters.scoreMin) url += `&score_min=${filters.scoreMin}`;
+    if (filters.crimeScoreMin) url += `&crime_score_min=${filters.crimeScoreMin}`;
+    if (filters.transportScoreMin) url += `&transport_score_min=${filters.transportScoreMin}`;
+    if (filters.educationScoreMin) url += `&education_score_min=${filters.educationScoreMin}`;
     
     try {
-        showLoading(true);
         const response = await fetch(url);
         
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -124,13 +155,38 @@ async function loadHeatmapData() {
             propertiesData = data.data;
             updateStats(data.count);
         } else {
-            showMessage('No data found for selected area', 'info');
+            // Try to load all data if no data in current bounds
+            if (propertiesData.length === 0) {
+                await loadAllData();
+            } else {
+                showMessage('No data found for selected area', 'info');
+            }
         }
     } catch (error) {
         console.error('Error loading heatmap data:', error);
         showError('Error loading data. Check server connection.');
-    } finally {
-        showLoading(false);
+    }
+}
+
+// Load all data (for initial load or when no bounds data)
+async function loadAllData() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/heatmap`);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        
+        if (data.data && data.data.length > 0) {
+            updateHeatmap(data.data);
+            propertiesData = data.data;
+            updateStats(data.count);
+        } else {
+            showMessage('No data available. Please run geocoding first.', 'warning');
+        }
+    } catch (error) {
+        console.error('Error loading all data:', error);
+        showError('Error loading data. Check server connection.');
     }
 }
 
@@ -180,30 +236,55 @@ function updateHeatmapLayer(data) {
 // Update markers
 function updateMarkers(data) {
     // Clear old markers
-    markers.forEach(marker => map.removeLayer(marker));
+    if (markerClusterGroup) {
+        map.removeLayer(markerClusterGroup);
+        markerClusterGroup.clearLayers();
+    }
     markers = [];
+    
+    // Create marker cluster group
+    markerClusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        disableClusteringAtZoom: 15
+    });
     
     // Create markers
     data.forEach(point => {
         const marker = createMarker(point);
         markers.push(marker);
+        markerClusterGroup.addLayer(marker);
     });
+    
+    // Add cluster group to map
+    if (markers.length > 0) {
+        map.addLayer(markerClusterGroup);
+    }
 }
 
 // Create marker
 function createMarker(point) {
     const color = getColorByScore(point.score || 0);
+    const price = point.price || 0;
+    
+    // Size based on price (log scale)
+    const radius = Math.max(5, Math.min(15, Math.log10(price + 1) * 2));
     
     const marker = L.circleMarker([point.lat, point.lng], {
-        radius: 8,
+        radius: radius,
         fillColor: color,
         color: '#fff',
         weight: 2,
-        opacity: 0.8,
-        fillOpacity: 0.8
-    }).addTo(map);
+        opacity: 0.9,
+        fillOpacity: 0.7
+    });
     
-    const popup = L.popup().setContent(createInfoWindowContent(point));
+    const popup = L.popup({
+        maxWidth: 300,
+        className: 'property-popup'
+    }).setContent(createInfoWindowContent(point));
     marker.bindPopup(popup);
     
     marker.on('click', () => {
@@ -267,6 +348,18 @@ async function loadPropertiesList() {
     if (filters.type) url += `&type=${encodeURIComponent(filters.type)}`;
     if (filters.priceMin) url += `&price_min=${filters.priceMin}`;
     if (filters.priceMax) url += `&price_max=${filters.priceMax}`;
+    if (filters.roomsMin) url += `&rooms_min=${filters.roomsMin}`;
+    if (filters.roomsMax) url += `&rooms_max=${filters.roomsMax}`;
+    if (filters.bedroomsMin) url += `&bedrooms_min=${filters.bedroomsMin}`;
+    if (filters.bedroomsMax) url += `&bedrooms_max=${filters.bedroomsMax}`;
+    if (filters.bathroomsMin) url += `&bathrooms_min=${filters.bathroomsMin}`;
+    if (filters.bathroomsMax) url += `&bathrooms_max=${filters.bathroomsMax}`;
+    if (filters.areaMin) url += `&area_min=${filters.areaMin}`;
+    if (filters.areaMax) url += `&area_max=${filters.areaMax}`;
+    if (filters.scoreMin) url += `&score_min=${filters.scoreMin}`;
+    if (filters.crimeScoreMin) url += `&crime_score_min=${filters.crimeScoreMin}`;
+    if (filters.transportScoreMin) url += `&transport_score_min=${filters.transportScoreMin}`;
+    if (filters.educationScoreMin) url += `&education_score_min=${filters.educationScoreMin}`;
     
     try {
         const response = await fetch(url);
@@ -490,8 +583,22 @@ function resetFilters() {
     document.getElementById('typeFilter').value = '';
     document.getElementById('priceMin').value = '';
     document.getElementById('priceMax').value = '';
+    document.getElementById('roomsMin').value = '';
+    document.getElementById('roomsMax').value = '';
+    document.getElementById('bedroomsMin').value = '';
+    document.getElementById('bedroomsMax').value = '';
+    document.getElementById('bathroomsMin').value = '';
+    document.getElementById('bathroomsMax').value = '';
+    document.getElementById('areaMin').value = '';
+    document.getElementById('areaMax').value = '';
     document.getElementById('scoreMin').value = 0;
     document.getElementById('scoreMinValue').textContent = '0';
+    document.getElementById('crimeScoreMin').value = 0;
+    document.getElementById('crimeScoreMinValue').textContent = '0';
+    document.getElementById('transportScoreMin').value = 0;
+    document.getElementById('transportScoreMinValue').textContent = '0';
+    document.getElementById('educationScoreMin').value = 0;
+    document.getElementById('educationScoreMinValue').textContent = '0';
     applyFilters();
 }
 
@@ -562,14 +669,14 @@ function centerMapOnData() {
 // Update view mode
 function updateViewMode(mode) {
     if (mode === 'heatmap') {
-        markers.forEach(m => map.removeLayer(m));
+        if (markerClusterGroup) map.removeLayer(markerClusterGroup);
         if (heatmapLayer) map.addLayer(heatmapLayer);
     } else if (mode === 'markers') {
         if (heatmapLayer) map.removeLayer(heatmapLayer);
-        markers.forEach(m => map.addLayer(m));
+        if (markerClusterGroup) map.addLayer(markerClusterGroup);
     } else {
         if (heatmapLayer) map.addLayer(heatmapLayer);
-        markers.forEach(m => map.addLayer(m));
+        if (markerClusterGroup) map.addLayer(markerClusterGroup);
     }
 }
 
@@ -645,7 +752,18 @@ function getFilters() {
         type: document.getElementById('typeFilter').value,
         priceMin: document.getElementById('priceMin').value,
         priceMax: document.getElementById('priceMax').value,
-        scoreMin: document.getElementById('scoreMin').value
+        roomsMin: document.getElementById('roomsMin').value,
+        roomsMax: document.getElementById('roomsMax').value,
+        bedroomsMin: document.getElementById('bedroomsMin').value,
+        bedroomsMax: document.getElementById('bedroomsMax').value,
+        bathroomsMin: document.getElementById('bathroomsMin').value,
+        bathroomsMax: document.getElementById('bathroomsMax').value,
+        areaMin: document.getElementById('areaMin').value,
+        areaMax: document.getElementById('areaMax').value,
+        scoreMin: document.getElementById('scoreMin').value,
+        crimeScoreMin: document.getElementById('crimeScoreMin').value,
+        transportScoreMin: document.getElementById('transportScoreMin').value,
+        educationScoreMin: document.getElementById('educationScoreMin').value
     };
 }
 
