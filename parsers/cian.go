@@ -216,9 +216,10 @@ func (cp *CianParser) extractPrice(text string) float64 {
 	}
 	
 	// Cian prices are usually in thousands, but check if it's in millions
-	if strings.Contains(strings.ToLower(text), "млн") || strings.Contains(strings.ToLower(text), "млн") {
+	lowerText := strings.ToLower(text)
+	if strings.Contains(lowerText, "млн") {
 		price *= 1000000
-	} else if strings.Contains(strings.ToLower(text), "тыс") || strings.Contains(strings.ToLower(text), "тыс") {
+	} else if strings.Contains(lowerText, "тыс") {
 		price *= 1000
 	}
 	

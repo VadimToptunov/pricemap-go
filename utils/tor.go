@@ -83,4 +83,3 @@ func (tc *TorControl) GetCurrentIP() (string, error) {
 	// For now, we'll leave this as a placeholder
 	return "", fmt.Errorf("not implemented")
 }
-

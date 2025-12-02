@@ -68,7 +68,7 @@ func (ip *IdealistaParser) Parse(ctx context.Context) ([]models.Property, error)
 	return allProperties, nil
 }
 
-func (ip *IdealistaParser) parseCity(ctx context.Context, city, path, dealType string) ([]models.Property, error) {
+func (ip *IdealistaParser) parseCity(ctx context.Context, city, path string, _ string) ([]models.Property, error) {
 	var properties []models.Property
 	
 	url := fmt.Sprintf("%s/%s/%s/", ip.baseURL, path, strings.ToLower(city))

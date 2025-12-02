@@ -123,7 +123,7 @@ func (odp *OpenDataParser) parseJSON(body io.ReadCloser) ([]models.Property, err
 	return properties, nil
 }
 
-func (odp *OpenDataParser) parseCSV(body io.ReadCloser) ([]models.Property, error) {
+func (odp *OpenDataParser) parseCSV(_ io.ReadCloser) ([]models.Property, error) {
 	// CSV parsing would go here
 	// For now, return empty - can be implemented later
 	return nil, fmt.Errorf("CSV parsing not yet implemented")

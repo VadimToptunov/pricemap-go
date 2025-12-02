@@ -56,11 +56,6 @@ func (up *UniversalParser) Parse(ctx context.Context) ([]models.Property, error)
 	return allProperties, nil
 }
 
-// CityBasedParser is a helper for parsers that need to iterate over cities
-type CityBasedParser struct {
-	cities []utils.City
-}
-
 // GetCitiesForCountry returns cities for a specific country
 func GetCitiesForCountry(country string) []utils.City {
 	return utils.GetCitiesByCountry(country)
