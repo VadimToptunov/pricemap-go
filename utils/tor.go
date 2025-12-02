@@ -1,8 +1,16 @@
 package utils
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
+	"strings"
+	"time"
+
+	"golang.org/x/net/proxy"
+
 	"pricemap-go/config"
 )
 
@@ -79,7 +87,71 @@ func (tc *TorControl) GetCurrentIP() (string, error) {
 		return "", fmt.Errorf("Tor is not enabled")
 	}
 
-	// This would require making a request through Tor and checking the IP
-	// For now, we'll leave this as a placeholder
-	return "", fmt.Errorf("not implemented")
+	// Create HTTP client that uses Tor SOCKS proxy
+	torProxy := fmt.Sprintf("%s:%s", config.AppConfig.TorProxyHost, config.AppConfig.TorProxyPort)
+	dialer, err := proxy.SOCKS5("tcp", torProxy, nil, proxy.Direct)
+	if err != nil {
+		return "", fmt.Errorf("failed to create Tor dialer: %w", err)
+	}
+
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialer.Dial(network, addr)
+		},
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   10 * time.Second,
+	}
+
+	// Use a reliable IP checking service
+	// Try multiple services in case one is down
+	ipServices := []string{
+		"https://api.ipify.org",
+		"https://icanhazip.com",
+		"https://ifconfig.me/ip",
+	}
+
+	var lastErr error
+	for _, serviceURL := range ipServices {
+		req, err := http.NewRequestWithContext(context.Background(), "GET", serviceURL, nil)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to create request: %w", err)
+			continue
+		}
+
+		req.Header.Set("User-Agent", "Mozilla/5.0")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to make request to %s: %w", serviceURL, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("unexpected status code %d from %s", resp.StatusCode, serviceURL)
+			continue
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to read response from %s: %w", serviceURL, err)
+			continue
+		}
+
+		ip := string(body)
+		// Clean up the IP (remove whitespace, newlines, etc.)
+		ip = strings.TrimSpace(ip)
+
+		// Validate that it looks like an IP address
+		if net.ParseIP(ip) != nil {
+			return ip, nil
+		}
+
+		lastErr = fmt.Errorf("invalid IP address received: %s", ip)
+	}
+
+	return "", fmt.Errorf("failed to get IP from any service: %w", lastErr)
 }

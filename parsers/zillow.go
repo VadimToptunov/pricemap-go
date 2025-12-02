@@ -71,7 +71,7 @@ func (zp *ZillowParser) Parse(ctx context.Context) ([]models.Property, error) {
 	return allProperties, nil
 }
 
-func (zp *ZillowParser) parseCity(ctx context.Context, city, path, dealType string) ([]models.Property, error) {
+func (zp *ZillowParser) parseCity(ctx context.Context, city, path string, _ string) ([]models.Property, error) {
 	var properties []models.Property
 	
 	// Zillow search URL

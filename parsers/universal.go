@@ -20,7 +20,7 @@ func NewUniversalParser() *UniversalParser {
 		NewRightmoveParser(), // UK
 		// Add more country-specific parsers here
 	}
-	
+
 	return &UniversalParser{
 		BaseParser: NewBaseParser(""),
 		parsers:    parsers,
@@ -37,7 +37,7 @@ func (up *UniversalParser) GetBaseURL() string {
 
 func (up *UniversalParser) Parse(ctx context.Context) ([]models.Property, error) {
 	var allProperties []models.Property
-	
+
 	// Run all parsers in parallel (with context cancellation support)
 	for _, parser := range up.parsers {
 		properties, err := parser.Parse(ctx)
@@ -47,10 +47,9 @@ func (up *UniversalParser) Parse(ctx context.Context) ([]models.Property, error)
 		}
 		allProperties = append(allProperties, properties...)
 	}
-	
-	log.Printf("Universal parser collected %d properties from %d sources", 
+
+	log.Printf("Universal parser collected %d properties from %d sources",
 		len(allProperties), len(up.parsers))
-	
+
 	return allProperties, nil
 }
-

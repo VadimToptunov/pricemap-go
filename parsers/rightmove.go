@@ -70,7 +70,7 @@ func (rp *RightmoveParser) Parse(ctx context.Context) ([]models.Property, error)
 	return allProperties, nil
 }
 
-func (rp *RightmoveParser) parseCity(ctx context.Context, city, path, dealType string) ([]models.Property, error) {
+func (rp *RightmoveParser) parseCity(ctx context.Context, city, path string, _ string) ([]models.Property, error) {
 	var properties []models.Property
 	
 	// Rightmove search URL - using location search
