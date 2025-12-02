@@ -25,6 +25,12 @@ type Config struct {
 	UserAgent      string
 	RequestTimeout int // seconds
 	
+	// Tor Proxy (for bypassing blocks)
+	UseTor         bool
+	TorProxyHost   string
+	TorProxyPort   string
+	TorControlPort string // For circuit rotation
+	
 	// Cron
 	CronSchedule string
 }
@@ -49,6 +55,11 @@ func Load() {
 		
 		UserAgent:      getEnv("USER_AGENT", "PriceMap-Go/1.0"),
 		RequestTimeout: 30,
+		
+		UseTor:         getEnv("USE_TOR", "false") == "true",
+		TorProxyHost:   getEnv("TOR_PROXY_HOST", "127.0.0.1"),
+		TorProxyPort:   getEnv("TOR_PROXY_PORT", "9050"),
+		TorControlPort: getEnv("TOR_CONTROL_PORT", "9051"),
 		
 		CronSchedule: getEnv("CRON_SCHEDULE", "0 */6 * * *"), // Every 6 hours
 	}

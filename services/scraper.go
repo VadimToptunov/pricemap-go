@@ -20,15 +20,20 @@ type ScraperService struct {
 func NewScraperService() *ScraperService {
 	return &ScraperService{
 		parsers: []parsers.Parser{
-			// Add all parsers here
+			// Open Data Sources (most reliable, no blocking)
+			parsers.NewNYCOpenDataParser(),      // NYC Open Data - Property Sales
+			parsers.NewLondonOpenDataParser(),   // London Data Store - House Prices
+			parsers.NewBerlinOpenDataParser(),   // Berlin Open Data - Real Estate
+			parsers.NewParisOpenDataParser(),    // Paris Open Data - Rent Control
+			parsers.NewTokyoOpenDataParser(),    // Tokyo Open Data - Property Prices
+			parsers.NewSydneyOpenDataParser(),  // Sydney Open Data - Property Sales
+			parsers.NewMoscowOpenDataParser(),  // Moscow Open Data - Real Estate
+			
+			// Commercial sites (may have blocking)
 			parsers.NewCianParser(),      // Russia - 30+ cities, sale & rent
 			parsers.NewRightmoveParser(), // UK - 25+ cities, sale & rent
 			parsers.NewZillowParser(),    // USA - 30+ cities, sale & rent
 			parsers.NewIdealistaParser(), // Spain - 20+ cities, sale & rent
-			// Add more country-specific parsers as they are implemented
-			// parsers.NewImmobilienScoutParser(), // Germany
-			// parsers.NewLeboncoinParser(),      // France
-			// parsers.NewRealtorCaParser(),      // Canada
 		},
 		factorsService: NewFactorsService(),
 		metricsService: NewMetricsService(),
