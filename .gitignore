@@ -8,8 +8,9 @@ bin/
 dist/
 server
 
-# Test binary
+# Test binaries
 *.test
+*.test.exe
 
 # Output of the go coverage tool
 *.out

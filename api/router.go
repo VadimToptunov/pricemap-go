@@ -6,24 +6,29 @@ import (
 
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
-	
+
 	// Middleware
 	router.Use(LoggerMiddleware())
 	router.Use(CORSMiddleware())
 	router.Use(RateLimitMiddleware())
-	
+
 	handler := NewHandler()
-	
+
+	// Health check endpoints (for monitoring and K8s probes)
+	router.GET("/health", HealthHandler)
+	router.GET("/readiness", ReadinessHandler)
+	router.GET("/liveness", LivenessHandler)
+
 	// Static files (frontend)
 	router.Static("/web", "./web")
 	router.StaticFile("/", "./web/index.html")
 	router.StaticFile("/index.html", "./web/index.html")
-	
+
 	// Serve static assets with correct paths
 	router.StaticFile("/style.css", "./web/style.css")
 	router.StaticFile("/app.js", "./web/app.js")
 	router.StaticFile("/app-leaflet.js", "./web/app-leaflet.js")
-	
+
 	// API routes
 	api := router.Group("/api/v1")
 	{
@@ -34,7 +39,6 @@ func SetupRouter() *gin.Engine {
 		api.GET("/metrics", handler.GetMetrics)
 		api.GET("/metrics/parser/:parser", handler.GetParserMetrics)
 	}
-	
+
 	return router
 }
-

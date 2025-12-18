@@ -1,0 +1,41 @@
+# Docker Compose Health Check Configuration
+#
+# This file provides health check capabilities for Docker deployments.
+# Since the main image uses 'scratch' base (no curl/wget), we need
+# an alternative approach for Docker health checks.
+#
+# Usage:
+#   docker-compose -f docker-compose.yml -f docker-compose.healthcheck.yml up
+
+version: '3.8'
+
+services:
+  server:
+    healthcheck:
+      # Use wget from a sidecar or external probe
+      # For production, use Kubernetes liveness/readiness probes instead
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Note: This requires alpine or similar base image with wget/curl
+    # Current scratch image doesn't support this - use K8s probes instead
+
+  # Alternative: Use a health check sidecar
+  healthcheck:
+    image: alpine:latest
+    container_name: pricemap-healthcheck
+    command: |
+      sh -c '
+        apk add --no-cache curl;
+        while true; do
+          if ! curl -f http://server:3000/health > /dev/null 2>&1; then
+            echo "Health check failed at $(date)";
+          fi;
+          sleep 30;
+        done
+      '
+    depends_on:
+      - server
+    restart: unless-stopped

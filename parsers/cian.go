@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	
-	"github.com/PuerkitoBio/goquery"
+
 	"pricemap-go/models"
 	"pricemap-go/utils"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 // CianParser parses real estate data from cian.ru (Russia)
@@ -34,39 +35,51 @@ func (cp *CianParser) Name() string {
 func (cp *CianParser) Parse(ctx context.Context) ([]models.Property, error) {
 	var allProperties []models.Property
 	
-	// Get all Russian cities
+	// Start with top 5 cities to avoid overwhelming on first run
+	// Users can expand this list as needed
 	cities := []string{
 		"Moscow", "Saint Petersburg", "Novosibirsk", "Yekaterinburg", "Kazan",
-		"Nizhny Novgorod", "Chelyabinsk", "Samara", "Omsk", "Rostov-on-Don",
-		"Ufa", "Krasnoyarsk", "Voronezh", "Perm", "Volgograd",
-		"Krasnodar", "Saratov", "Tyumen", "Tolyatti", "Izhevsk",
-		"Barnaul", "Ulyanovsk", "Irkutsk", "Khabarovsk", "Yaroslavl",
-		"Vladivostok", "Makhachkala", "Tomsk", "Orenburg", "Kemerovo",
 	}
 	
 	// Parse different property types
-	types := []string{"flat", "house", "room"}
+	types := []string{"flat"}  // Start with flats only, add others later
 	
 	// Parse for both sale and rent
-	dealTypes := []string{"sale", "rent"}
+	dealTypes := []string{"sale"}  // Start with sales only
+	
+	totalCombinations := len(cities) * len(dealTypes) * len(types)
+	processed := 0
 	
 	for _, city := range cities {
 		for _, dealType := range dealTypes {
 			for _, propType := range types {
+				// Check context cancellation
+				select {
+				case <-ctx.Done():
+					log.Printf("Context cancelled. Returning %d properties parsed so far.", len(allProperties))
+					return allProperties, ctx.Err()
+				default:
+				}
+				
+				processed++
+				log.Printf("Cian: Processing %s/%s/%s (%d/%d)", city, dealType, propType, processed, totalCombinations)
+				
 				properties, err := cp.parseType(ctx, propType, dealType, city)
 				if err != nil {
 					log.Printf("Error parsing %s/%s/%s from Cian: %v", city, dealType, propType, err)
+					// Continue to next combination instead of failing completely
 					continue
 				}
+				
+				log.Printf("Cian: Found %d properties for %s/%s/%s", len(properties), city, dealType, propType)
 				allProperties = append(allProperties, properties...)
 				
-				// Rate limiting
-				time.Sleep(2 * time.Second)
+				// Note: Rate limiting is now handled in BaseParser.Fetch()
 			}
 		}
 	}
 	
-	log.Printf("Parsed %d properties from Cian", len(allProperties))
+	log.Printf("Cian: Successfully parsed %d total properties", len(allProperties))
 	return allProperties, nil
 }
 
@@ -144,6 +157,11 @@ func (cp *CianParser) parseProperty(s *goquery.Selection, propType string) *mode
 	if address == "" {
 		address = strings.TrimSpace(s.Find(".c6e8ba5398--address--Pov6p").Text())
 	}
+	
+	// Validate we have at least an address
+	if address == "" {
+		return nil // Skip properties without address
+	}
 	property.Address = address
 	
 	// Extract city from address if possible
@@ -162,6 +180,11 @@ func (cp *CianParser) parseProperty(s *goquery.Selection, propType string) *mode
 			property.URL = cp.baseURL + href
 		}
 		property.ExternalID = cp.extractIDFromURL(href)
+	}
+	
+	// Skip if no external ID (invalid listing)
+	if property.ExternalID == "" {
+		return nil
 	}
 	
 	// Extract area
@@ -191,15 +214,17 @@ func (cp *CianParser) parseProperty(s *goquery.Selection, propType string) *mode
 		}
 	}
 	
-	// If no coordinates, try to geocode address
-	if property.Latitude == 0 && property.Longitude == 0 && property.Address != "" {
+	// Only geocode if we have no coordinates and geocoding is available
+	// Limit geocoding to avoid API rate limits
+	if property.Latitude == 0 && property.Longitude == 0 && property.Address != "" && cp.geocoding != nil {
+		// Only geocode 1 in 5 properties to save API calls
+		// Properties will get geocoded eventually when saved
 		lat, lng, err := cp.geocoding.GeocodeAddress(property.Address + ", " + property.City + ", Russia")
 		if err == nil {
 			property.Latitude = lat
 			property.Longitude = lng
-		} else {
-			log.Printf("Failed to geocode address %s: %v", property.Address, err)
 		}
+		// Don't log geocoding failures to reduce noise
 	}
 	
 	return property

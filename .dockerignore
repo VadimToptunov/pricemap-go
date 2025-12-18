@@ -1,33 +1,59 @@
 # Git
 .git
 .gitignore
+.github
 
 # Documentation
 *.md
 docs/
 
+# Development files
+.env
+.env.*
+env.example
+
 # IDE
-.idea/
-.vscode/
+.vscode
+.idea
 *.swp
 *.swo
+*~
+
+# Test files
+*_test.go
+*.test
+coverage.out
+coverage.html
 
 # Build artifacts
-*.exe
-*.test
-*.out
 bin/
 dist/
+*.exe
+*.dll
+*.so
+*.dylib
 
-# Environment
-.env
-.env.local
+# Logs
+*.log
+logs/
 
-# OS
+# Database
+*.db
+*.sqlite
+
+# OS files
 .DS_Store
 Thumbs.db
 
-# Test coverage
-coverage.txt
-coverage.html
+# Temporary files
+tmp/
+temp/
+*.tmp
 
+# Kubernetes
+k8s/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

@@ -18,6 +18,17 @@ services:
       timeout: 5s
       retries: 5
 
+  tor:
+    image: dperson/torproxy
+    container_name: pricemap-tor
+    ports:
+      - "9050:9050"
+      - "9051:9051"
+    environment:
+      TOR_NewCircuitPeriod: "30"
+      TOR_MaxCircuitDirtiness: "60"
+    restart: unless-stopped
+
   server:
     build: .
     container_name: pricemap-server
@@ -47,9 +58,18 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: pricemap
+      USE_TOR: "true"
+      TOR_PROXY_HOST: tor
+      TOR_PROXY_PORT: 9050
+      TOR_CONTROL_PORT: 9051
+      RATE_LIMIT_DELAY: 3
+      MAX_RETRIES: 3
+      RETRY_DELAY: 5
     depends_on:
       postgres:
         condition: service_healthy
+      tor:
+        condition: service_started
     restart: "no"
 
   scheduler:
